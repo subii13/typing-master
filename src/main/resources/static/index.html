@@ -21,7 +21,8 @@
     let startTime = null;
     let totalKeystrokes = 0;
     let correctKeystrokes = 0;
-    let charStatus=[];
+    let charStatus = [];
+
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
@@ -35,29 +36,52 @@
     }
 
     function renderPassage() {
-  const chars = passage.text.split('');
-  document.getElementById('passage').innerHTML = chars.map((c, i) => {
-    let color = 'black';
-    if (i < typedIndex) color = charStatus[i] === 'wrong' ? 'red' : 'green';
-    return `<span style="color:${color}">${c}</span>`;
-  }).join('');
-}
+      const chars = passage.text.split('');
+      document.getElementById('passage').innerHTML = chars.map((c, i) => {
+        let color = 'black';
+        if (i < typedIndex) color = charStatus[i] === 'wrong' ? 'red' : 'green';
+        return `<span style="color:${color}">${c}</span>`;
+      }).join('');
+    }
+
+    async function finishRun() {
+      const elapsedMs = performance.now() - startTime;
+      const minutes = elapsedMs / 60000;
+      const wpm = (passage.text.length / 5) / minutes;
+      const accuracy = (correctKeystrokes / totalKeystrokes) * 100;
+
+      document.getElementById('wpm').textContent = Math.round(wpm);
+      document.getElementById('accuracy').textContent = Math.round(accuracy);
+
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passageId: passage.id,
+          wpm: wpm,
+          accuracy: accuracy
+        })
+      });
+      const saved = await res.json();
+      console.log('Session saved:', saved);
+    }
 
     document.addEventListener('keydown', (e) => {
       if (!passage || e.key.length !== 1) return; // ignore Shift, Enter, etc for now
+      if (typedIndex >= passage.text.length) return; // run already finished
 
       if (startTime === null) startTime = performance.now();
 
       const expected = passage.text[typedIndex];
-totalKeystrokes++;
-if (e.key === expected) {
-  correctKeystrokes++;
-  charStatus[typedIndex] = 'correct';
-} else {
-  charStatus[typedIndex] = 'wrong';
-}
+      totalKeystrokes++;
+      if (e.key === expected) {
+        correctKeystrokes++;
+        charStatus[typedIndex] = 'correct';
+      } else {
+        charStatus[typedIndex] = 'wrong';
+      }
 
-typedIndex++;
+      typedIndex++;
       renderPassage();
 
       const elapsedMin = (performance.now() - startTime) / 60000;
@@ -65,6 +89,10 @@ typedIndex++;
       const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
       document.getElementById('wpm').textContent = wpm;
       document.getElementById('accuracy').textContent = accuracy;
+
+      if (typedIndex === passage.text.length) {
+        finishRun();
+      }
     });
 
     document.getElementById('passage').addEventListener('click', () => {
