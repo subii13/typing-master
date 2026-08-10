@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>keyrace</title>
+</head>
+<body>
+  <h1>keyrace</h1>
+  <p id="passage"></p>
+
+  <script>
+    async function loadPassage() {
+      const res = await fetch('/api/passages/random');
+      const data = await res.json();
+      document.getElementById('passage').textContent = data.text;
+    }
+    loadPassage();
+  </script>
+</body>
+</html>
