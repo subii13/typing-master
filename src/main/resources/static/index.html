@@ -6,14 +6,71 @@
 </head>
 <body>
   <h1>keyrace</h1>
+
+  <div id="stats">
+    <span>WPM: <b id="wpm">0</b></span>
+    <span>Accuracy: <b id="accuracy">100</b>%</span>
+  </div>
+
   <p id="passage"></p>
+  <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
 
   <script>
+    let passage = null;
+    let typedIndex = 0;
+    let startTime = null;
+    let totalKeystrokes = 0;
+    let correctKeystrokes = 0;
+    let charStatus=[];
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
-      const data = await res.json();
-      document.getElementById('passage').textContent = data.text;
+      passage = await res.json();
+      typedIndex = 0;
+      startTime = null;
+      totalKeystrokes = 0;
+      correctKeystrokes = 0;
+      charStatus = [];
+      renderPassage();
+      document.getElementById('hidden-input').focus();
     }
+
+    function renderPassage() {
+  const chars = passage.text.split('');
+  document.getElementById('passage').innerHTML = chars.map((c, i) => {
+    let color = 'black';
+    if (i < typedIndex) color = charStatus[i] === 'wrong' ? 'red' : 'green';
+    return `<span style="color:${color}">${c}</span>`;
+  }).join('');
+}
+
+    document.addEventListener('keydown', (e) => {
+      if (!passage || e.key.length !== 1) return; // ignore Shift, Enter, etc for now
+
+      if (startTime === null) startTime = performance.now();
+
+      const expected = passage.text[typedIndex];
+totalKeystrokes++;
+if (e.key === expected) {
+  correctKeystrokes++;
+  charStatus[typedIndex] = 'correct';
+} else {
+  charStatus[typedIndex] = 'wrong';
+}
+
+typedIndex++;
+      renderPassage();
+
+      const elapsedMin = (performance.now() - startTime) / 60000;
+      const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
+      const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
+      document.getElementById('wpm').textContent = wpm;
+      document.getElementById('accuracy').textContent = accuracy;
+    });
+
+    document.getElementById('passage').addEventListener('click', () => {
+      document.getElementById('hidden-input').focus();
+    });
+
     loadPassage();
   </script>
 </body>
