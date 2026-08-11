@@ -13,13 +13,14 @@
   </nav>
 
   <div id="view-type">
-    <div id="stats">
-      <span>WPM: <b id="wpm">0</b></span>
-      <span>Accuracy: <b id="accuracy">100</b>%</span>
-    </div>
-    <p id="passage"></p>
-    <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
+  <div id="stats">
+    <span>WPM: <b id="wpm">0</b></span>
+    <span>Accuracy: <b id="accuracy">100</b>%</span>
+    <span>Ghost: <b id="ghost-wpm">—</b></span>
   </div>
+  <p id="passage"></p>
+  <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
+</div>
 
   <div id="view-history" style="display:none;">
     <table border="1" cellpadding="6">
@@ -29,7 +30,7 @@
       <tbody id="history-body"></tbody>
     </table>
   </div>
-
+  
   <div id="view-heatmap" style="display:none;">
     <div id="heatmap-grid"></div>
   </div>
@@ -43,6 +44,7 @@
     let charStatus = [];
     let errorsByChar = {};
     let charTimings = [];
+    let ghost=null;
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
@@ -53,8 +55,10 @@
       charStatus = [];
       charTimings=[];
       errorsByChar = {};
+      const ghostRes = await fetch(`/api/sessions/ghost/${passage.id}`);
+      ghost = await ghostRes.json();
       renderPassage();
-      document.getElementById('hidden-input').focus();
+      document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
     }
 
     function renderPassage() {
