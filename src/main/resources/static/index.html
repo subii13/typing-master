@@ -36,7 +36,7 @@
     let totalKeystrokes = 0;
     let correctKeystrokes = 0;
     let charStatus = [];
-
+    let errorsByChar = {};
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
@@ -45,6 +45,7 @@
       totalKeystrokes = 0;
       correctKeystrokes = 0;
       charStatus = [];
+      errorsByChar = {};
       renderPassage();
       document.getElementById('hidden-input').focus();
     }
@@ -66,6 +67,7 @@
 
       document.getElementById('wpm').textContent = Math.round(wpm);
       document.getElementById('accuracy').textContent = Math.round(accuracy);
+       console.log('Sending errorsByChar:', errorsByChar);
 
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -73,11 +75,18 @@
         body: JSON.stringify({
           passageId: passage.id,
           wpm: wpm,
-          accuracy: accuracy
+          accuracy: accuracy,
+          errorsByChar: errorsByChar
         })
       });
       const saved = await res.json();
       console.log('Session saved:', saved);
+      body: JSON.stringify({
+      passageId: passage.id,
+      wpm: wpm,
+      accuracy: accuracy,
+      errorsByChar: errorsByChar
+      })
     }
 
     document.addEventListener('keydown', (e) => {
@@ -93,7 +102,8 @@
         charStatus[typedIndex] = 'correct';
       } else {
         charStatus[typedIndex] = 'wrong';
-      }
+        errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
+    }
 
       typedIndex++;
       renderPassage();
