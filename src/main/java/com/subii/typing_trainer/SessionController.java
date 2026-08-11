@@ -45,4 +45,10 @@ return sessionRepository.save(session);
     public Map<String, Integer> heatmap() {
     return heatmapService.aggregate();
     }
+
+   @GetMapping("/api/sessions/ghost/{passageId}")
+    public TypingSession ghost(@PathVariable Long passageId) {
+    List<TypingSession> sessions = sessionRepository.findByPassageIdAndTimingArrayJsonIsNotNullOrderByWpmDesc(passageId);
+    return sessions.isEmpty() ? null : sessions.get(0);
+}
 }
