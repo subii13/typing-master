@@ -83,7 +83,8 @@
           passageId: passage.id,
           wpm: wpm,
           accuracy: accuracy,
-          errorsByChar: errorsByChar
+          errorsByChar: errorsByChar,
+          charTimings: charTimings
         })
       });
       const saved = await res.json();

@@ -16,6 +16,7 @@ public class TypingSession {
     private double wpm;
     private double accuracy;
     private String errorsByCharJson; // JSON like {"e": 2, "a": 1}
+    private String timingArrayJson;
     public TypingSession() {}
 
     public TypingSession(Long passageId, double wpm, double accuracy) {
@@ -38,4 +39,9 @@ public class TypingSession {
 
     public String getErrorsByCharJson() { return errorsByCharJson; }
     public void setErrorsByCharJson(String errorsByCharJson) { this.errorsByCharJson = errorsByCharJson; }
+
+    public String getTimingArrayJson(){ return timingArrayJson;}
+    public void setTimingArrayJson(String timingArrayJson){
+        this.timingArrayJson = timingArrayJson;
+    }
 }

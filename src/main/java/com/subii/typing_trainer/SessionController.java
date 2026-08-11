@@ -31,8 +31,10 @@ public class SessionController {
 
         Object errors = body.get("errorsByChar");
         session.setErrorsByCharJson(mapper.writeValueAsString(errors));
+        Object timings = body.get("charTimings");
+        session.setTimingArrayJson(mapper.writeValueAsString(timings));
 
-        return sessionRepository.save(session);
+return sessionRepository.save(session);
     }
 
     @GetMapping("/api/sessions")
