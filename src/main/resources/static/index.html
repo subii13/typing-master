@@ -9,6 +9,7 @@
   <nav>
     <button id="tab-type">type</button>
     <button id="tab-history">history</button>
+    <button id="tab-heatmap">heatmap</button>
   </nav>
 
   <div id="view-type">
@@ -29,6 +30,10 @@
     </table>
   </div>
 
+  <div id="view-heatmap" style="display:none;">
+    <div id="heatmap-grid"></div>
+  </div>
+
   <script>
     let passage = null;
     let typedIndex = 0;
@@ -37,6 +42,7 @@
     let correctKeystrokes = 0;
     let charStatus = [];
     let errorsByChar = {};
+
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
@@ -67,7 +73,7 @@
 
       document.getElementById('wpm').textContent = Math.round(wpm);
       document.getElementById('accuracy').textContent = Math.round(accuracy);
-       console.log('Sending errorsByChar:', errorsByChar);
+      console.log('Sending errorsByChar:', errorsByChar);
 
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -81,12 +87,6 @@
       });
       const saved = await res.json();
       console.log('Session saved:', saved);
-      body: JSON.stringify({
-      passageId: passage.id,
-      wpm: wpm,
-      accuracy: accuracy,
-      errorsByChar: errorsByChar
-      })
     }
 
     document.addEventListener('keydown', (e) => {
@@ -103,7 +103,7 @@
       } else {
         charStatus[typedIndex] = 'wrong';
         errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
-    }
+      }
 
       typedIndex++;
       renderPassage();
@@ -136,15 +136,42 @@
       `).join('');
     }
 
+    async function loadHeatmap() {
+      const res = await fetch('/api/sessions/heatmap');
+      const data = await res.json();
+      const grid = document.getElementById('heatmap-grid');
+
+      const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+      const max = entries.length ? entries[0][1] : 1;
+
+      grid.innerHTML = entries.map(([char, count]) => {
+        const intensity = count / max;
+        const label = char === ' ' ? '(space)' : char;
+        return `<span style="display:inline-block; padding:8px 12px; margin:4px;
+          background: rgba(255,0,0,${intensity}); border:1px solid #ccc;">
+          ${label}: ${count}
+        </span>`;
+      }).join('');
+    }
+
+    function showView(view) {
+      document.getElementById('view-type').style.display = view === 'type' ? 'block' : 'none';
+      document.getElementById('view-history').style.display = view === 'history' ? 'block' : 'none';
+      document.getElementById('view-heatmap').style.display = view === 'heatmap' ? 'block' : 'none';
+    }
+
     document.getElementById('tab-type').addEventListener('click', () => {
-      document.getElementById('view-type').style.display = 'block';
-      document.getElementById('view-history').style.display = 'none';
+      showView('type');
     });
 
     document.getElementById('tab-history').addEventListener('click', () => {
-      document.getElementById('view-type').style.display = 'none';
-      document.getElementById('view-history').style.display = 'block';
+      showView('history');
       loadHistory();
+    });
+
+    document.getElementById('tab-heatmap').addEventListener('click', () => {
+      showView('heatmap');
+      loadHeatmap();
     });
 
     loadPassage();
