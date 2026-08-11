@@ -42,7 +42,7 @@
     let correctKeystrokes = 0;
     let charStatus = [];
     let errorsByChar = {};
-
+    let charTimings = [];
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
@@ -51,6 +51,7 @@
       totalKeystrokes = 0;
       correctKeystrokes = 0;
       charStatus = [];
+      charTimings=[];
       errorsByChar = {};
       renderPassage();
       document.getElementById('hidden-input').focus();
@@ -74,7 +75,7 @@
       document.getElementById('wpm').textContent = Math.round(wpm);
       document.getElementById('accuracy').textContent = Math.round(accuracy);
       console.log('Sending errorsByChar:', errorsByChar);
-
+      console.log('Sending charTimings:',charTimings);
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,7 +105,7 @@
         charStatus[typedIndex] = 'wrong';
         errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
       }
-
+      charTimings[typedIndex]=Math.round(performance.now() - startTime);
       typedIndex++;
       renderPassage();
 
