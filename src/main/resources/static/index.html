@@ -13,20 +13,20 @@
   </nav>
 
   <div id="view-type">
-  <div id="stats">
-    <span>WPM: <b id="wpm">0</b></span>
-    <span>Accuracy: <b id="accuracy">100</b>%</span>
-    <span>Ghost: <b id="ghost-wpm">—</b></span>
-    <span>Score: <b id="score">0</b></span>
-    <span>Combo: <b id="combo">0</b></span>
+    <div id="stats">
+      <span>WPM: <b id="wpm">0</b></span>
+      <span>Accuracy: <b id="accuracy">100</b>%</span>
+      <span>Ghost: <b id="ghost-wpm">—</b></span>
+      <span>Score: <b id="score">0</b></span>
+      <span>Combo: <b id="combo">0</b></span>
+    </div>
+    <div id="race-track" style="position:relative; height:30px; background:#eee; margin-bottom:10px;">
+      <div id="ghost-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:orange;"></div>
+      <div id="player-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:blue;"></div>
+    </div>
+    <p id="passage"></p>
+    <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
   </div>
-  <div id="race-track" style="position:relative; height:30px; background:#eee; margin-bottom:10px;">
-  <div id="ghost-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:orange;"></div>
-  <div id="player-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:blue;"></div>
-</div>
-  <p id="passage"></p>
-  <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
-</div>
 
   <div id="view-history" style="display:none;">
     <table border="1" cellpadding="6">
@@ -36,7 +36,7 @@
       <tbody id="history-body"></tbody>
     </table>
   </div>
-  
+
   <div id="view-heatmap" style="display:none;">
     <div id="heatmap-grid"></div>
   </div>
@@ -50,10 +50,11 @@
     let charStatus = [];
     let errorsByChar = {};
     let charTimings = [];
-    let ghost=null;
+    let ghost = null;
     let ghostTimings = null;
-    let score=0;
-    let combo=0;
+    let score = 0;
+    let combo = 0;
+
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
@@ -61,26 +62,63 @@
       startTime = null;
       totalKeystrokes = 0;
       correctKeystrokes = 0;
-      score=0;
-      combo=0;
+      score = 0;
+      combo = 0;
       charStatus = [];
-      charTimings=[];
+      charTimings = [];
       errorsByChar = {};
+
       const ghostRes = await fetch(`/api/sessions/ghost/${passage.id}`);
       const ghostText = await ghostRes.text();
       ghost = ghostText ? JSON.parse(ghostText) : null;
       ghostTimings = (ghost && ghost.timingArrayJson) ? JSON.parse(ghost.timingArrayJson) : null;
-      renderPassage();
+
       document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
+      document.getElementById('score').textContent = score;
+      document.getElementById('combo').textContent = combo;
+      renderPassage();
+      document.getElementById('hidden-input').focus();
+    }
+
+    function getCurrentLineInfo() {
+      const lines = passage.text.split('\n');
+      let charsSeen = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const lineLength = lines[i].length;
+        if (typedIndex <= charsSeen + lineLength) {
+          return { lineIndex: i, lines: lines, offsetInLine: typedIndex - charsSeen };
+        }
+        charsSeen += lineLength + 1; // +1 for the \n character itself
+      }
+      return { lineIndex: lines.length - 1, lines: lines, offsetInLine: 0 };
+    }
+
+    function getGlobalIndexForLineChar(lineIndex, i) {
+      const lines = passage.text.split('\n');
+      let charsSeen = 0;
+      for (let l = 0; l < lineIndex; l++) {
+        charsSeen += lines[l].length + 1;
+      }
+      return charsSeen + i;
     }
 
     function renderPassage() {
-      const chars = passage.text.split('');
-      document.getElementById('passage').innerHTML = chars.map((c, i) => {
+      const { lineIndex, lines, offsetInLine } = getCurrentLineInfo();
+      const currentLine = lines[lineIndex];
+      const nextLine = lines[lineIndex + 1] || '';
+
+      const currentHtml = currentLine.split('').map((c, i) => {
         let color = 'black';
-        if (i < typedIndex) color = charStatus[i] === 'wrong' ? 'red' : 'green';
+        if (i < offsetInLine) {
+          const globalCharIndex = getGlobalIndexForLineChar(lineIndex, i);
+          color = charStatus[globalCharIndex] === 'wrong' ? 'red' : 'green';
+        }
         return `<span style="color:${color}">${c}</span>`;
       }).join('');
+
+      const previewHtml = `<div style="color:#ccc; margin-top:4px;">${nextLine}</div>`;
+
+      document.getElementById('passage').innerHTML = currentHtml + previewHtml;
     }
 
     async function finishRun() {
@@ -91,8 +129,7 @@
 
       document.getElementById('wpm').textContent = Math.round(wpm);
       document.getElementById('accuracy').textContent = Math.round(accuracy);
-      console.log('Sending errorsByChar:', errorsByChar);
-      console.log('Sending charTimings:',charTimings);
+
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,46 +145,59 @@
       console.log('Session saved:', saved);
     }
 
-    document.addEventListener('keydown', (e) => {
-      if (!passage || e.key.length !== 1) return;
-      if (typedIndex >= passage.text.length) return;
+document.addEventListener('keydown', (e) => {
+  if (!passage) return;
+  if (typedIndex >= passage.text.length) return;
 
-      if (startTime === null) {
-        startTime = performance.now();
-        animateGhost();
-      }
+  const expected = passage.text[typedIndex];
+  const isNewlineExpected = expected === '\n';
 
-      const expected = passage.text[typedIndex];
-      totalKeystrokes++;
-     if (e.key === expected) {
-      correctKeystrokes++;
-      charStatus[typedIndex] = 'correct';
-      combo++;
-      const multiplier = 1 + Math.floor(combo / 10) * 0.5;
-      score += Math.round(10 * multiplier);
-    } else {
-      charStatus[typedIndex] = 'wrong';
-      errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
-      combo = 0;
-      score = Math.max(0, score - 5);
-}
+  if (isNewlineExpected) {
+    if (e.key !== 'Enter') return;
+  } else if (e.key.length !== 1) {
+    return;
+  }
 
-document.getElementById('score').textContent = score;
-document.getElementById('combo').textContent = combo;
-      charTimings[typedIndex]=Math.round(performance.now() - startTime);
-      typedIndex++;
-      renderPassage();
+  e.preventDefault();
 
-      const elapsedMin = (performance.now() - startTime) / 60000;
-      const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
-      const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
-      document.getElementById('wpm').textContent = wpm;
-      document.getElementById('accuracy').textContent = accuracy;
+  if (startTime === null) {
+    startTime = performance.now();
+    animateGhost();
+  }
 
-      if (typedIndex === passage.text.length) {
-        finishRun();
-      }
-    });
+  totalKeystrokes++;
+  const isCorrect = isNewlineExpected ? true : (e.key === expected);
+
+  if (isCorrect) {
+    correctKeystrokes++;
+    charStatus[typedIndex] = 'correct';
+    combo++;
+    const multiplier = 1 + Math.floor(combo / 10) * 0.5;
+    score += Math.round(10 * multiplier);
+  } else {
+    charStatus[typedIndex] = 'wrong';
+    errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
+    combo = 0;
+    score = Math.max(0, score - 5);
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+  charTimings[typedIndex] = Math.round(performance.now() - startTime);
+  typedIndex++;
+
+  renderPassage();
+
+  const elapsedMin = (performance.now() - startTime) / 60000;
+  const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
+  const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
+  document.getElementById('wpm').textContent = wpm;
+  document.getElementById('accuracy').textContent = accuracy;
+
+  if (typedIndex === passage.text.length) {
+    finishRun();
+  }
+});
 
     document.getElementById('passage').addEventListener('click', () => {
       document.getElementById('hidden-input').focus();
@@ -189,6 +239,7 @@ document.getElementById('combo').textContent = combo;
       document.getElementById('view-history').style.display = view === 'history' ? 'block' : 'none';
       document.getElementById('view-heatmap').style.display = view === 'heatmap' ? 'block' : 'none';
     }
+
     function ghostIndexAtTime(elapsedMs) {
       if (!ghostTimings) return 0;
       let idx = 0;
@@ -197,6 +248,7 @@ document.getElementById('combo').textContent = combo;
       }
       return idx;
     }
+
     function updateMarkers(ghostIdx) {
       const total = passage.text.length;
       const trackWidth = document.getElementById('race-track').offsetWidth;
@@ -217,6 +269,7 @@ document.getElementById('combo').textContent = combo;
 
       requestAnimationFrame(animateGhost);
     }
+
     document.getElementById('tab-type').addEventListener('click', () => {
       showView('type');
     });
