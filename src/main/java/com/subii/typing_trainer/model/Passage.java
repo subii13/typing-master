@@ -1,5 +1,6 @@
 package com.subii.typing_trainer.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,10 +13,9 @@ public class Passage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(columnDefinition = "CLOB")
     private String text;
 
-    // JPA requires a no-argument constructor — it uses this internally
-    // when reading rows back out of the database.
     public Passage() {}
 
     public Passage(String text) {

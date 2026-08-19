@@ -13,3 +13,4 @@ WHERE NOT EXISTS (SELECT 1 FROM passage WHERE text = 'Consistency beats intensit
 INSERT INTO passage (text)
 SELECT CONCAT('The keyboard clicks in a steady rhythm.', CHAR(10), 'Each word building on the last.', CHAR(10), 'Focus narrows to just this line, this word, this key.')
 WHERE NOT EXISTS (SELECT 1 FROM passage WHERE text LIKE 'The keyboard clicks%');
+
