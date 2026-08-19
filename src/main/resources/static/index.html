@@ -3,9 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <title>keyrace</title>
+
+  <style>
+    @keyframes popup {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-40px); opacity: 0; }
+    }
+    .popup-text {
+      position: absolute;
+      font-weight: bold;
+      font-size: 1.2em;
+      color: gold;
+      pointer-events: none;
+      animation: popup 0.8s ease-out forwards;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    @keyframes glow {
+      0% { box-shadow: 0 0 0px gold; }
+      50% { box-shadow: 0 0 20px gold; }
+      100% { box-shadow: 0 0 0px gold; }
+    }
+    .shake { animation: shake 0.3s; }
+    .glow { animation: glow 0.5s; }
+  </style>
 </head>
 <body>
+
   <h1>keyrace</h1>
+
   <nav>
     <button id="tab-type">type</button>
     <button id="tab-history">history</button>
@@ -20,10 +49,12 @@
       <span>Score: <b id="score">0</b></span>
       <span>Combo: <b id="combo">0</b></span>
     </div>
+
     <div id="race-track" style="position:relative; height:30px; background:#eee; margin-bottom:10px;">
       <div id="ghost-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:orange;"></div>
       <div id="player-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:blue;"></div>
     </div>
+
     <p id="passage"></p>
     <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
   </div>
@@ -42,6 +73,32 @@
   </div>
 
   <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(frequency, duration, type = 'sine') {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + duration);
+    }
+
+    function playCorrectSound() {
+      playTone(800, 0.05);
+    }
+
+    function playErrorSound() {
+      playTone(150, 0.15, 'sawtooth');
+    }
+
     let passage = null;
     let typedIndex = 0;
     let startTime = null;
@@ -58,6 +115,7 @@
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
+
       typedIndex = 0;
       startTime = null;
       totalKeystrokes = 0;
@@ -76,6 +134,7 @@
       document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
       document.getElementById('score').textContent = score;
       document.getElementById('combo').textContent = combo;
+
       renderPassage();
       document.getElementById('hidden-input').focus();
     }
@@ -88,7 +147,7 @@
         if (typedIndex <= charsSeen + lineLength) {
           return { lineIndex: i, lines: lines, offsetInLine: typedIndex - charsSeen };
         }
-        charsSeen += lineLength + 1; // +1 for the \n character itself
+        charsSeen += lineLength + 1;
       }
       return { lineIndex: lines.length - 1, lines: lines, offsetInLine: 0 };
     }
@@ -100,6 +159,19 @@
         charsSeen += lines[l].length + 1;
       }
       return charsSeen + i;
+    }
+
+    function showPopup(text) {
+      const passageEl = document.getElementById('passage');
+      const popup = document.createElement('div');
+      popup.className = 'popup-text';
+      popup.textContent = text;
+      popup.style.left = '50%';
+      popup.style.top = '-30px';
+      passageEl.style.position = 'relative';
+      passageEl.appendChild(popup);
+
+      setTimeout(() => popup.remove(), 800);
     }
 
     function renderPassage() {
@@ -145,59 +217,76 @@
       console.log('Session saved:', saved);
     }
 
-document.addEventListener('keydown', (e) => {
-  if (!passage) return;
-  if (typedIndex >= passage.text.length) return;
+    document.addEventListener('keydown', (e) => {
+      if (!passage) return;
+      if (typedIndex >= passage.text.length) return;
 
-  const expected = passage.text[typedIndex];
-  const isNewlineExpected = expected === '\n';
+      const expected = passage.text[typedIndex];
+      const isNewlineExpected = expected === '\n';
 
-  if (isNewlineExpected) {
-    if (e.key !== 'Enter') return;
-  } else if (e.key.length !== 1) {
-    return;
-  }
+      if (isNewlineExpected) {
+        if (e.key !== 'Enter') return;
+      } else if (e.key.length !== 1) {
+        return;
+      }
 
-  e.preventDefault();
+      e.preventDefault();
 
-  if (startTime === null) {
-    startTime = performance.now();
-    animateGhost();
-  }
+      if (startTime === null) {
+        startTime = performance.now();
+        animateGhost();
+      }
 
-  totalKeystrokes++;
-  const isCorrect = isNewlineExpected ? true : (e.key === expected);
+      totalKeystrokes++;
+      const isCorrect = isNewlineExpected ? true : (e.key === expected);
 
-  if (isCorrect) {
-    correctKeystrokes++;
-    charStatus[typedIndex] = 'correct';
-    combo++;
-    const multiplier = 1 + Math.floor(combo / 10) * 0.5;
-    score += Math.round(10 * multiplier);
-  } else {
-    charStatus[typedIndex] = 'wrong';
-    errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
-    combo = 0;
-    score = Math.max(0, score - 5);
-  }
+      if (isCorrect) {
+        playCorrectSound();
+        correctKeystrokes++;
+        charStatus[typedIndex] = 'correct';
+        combo++;
 
-  document.getElementById('score').textContent = score;
-  document.getElementById('combo').textContent = combo;
-  charTimings[typedIndex] = Math.round(performance.now() - startTime);
-  typedIndex++;
+        const multiplier = 1 + Math.floor(combo / 10) * 0.5;
+        score += Math.round(10 * multiplier);
 
-  renderPassage();
+        if (combo > 0 && combo % 10 === 0) {
+          const statsEl = document.getElementById('stats');
+          statsEl.classList.remove('glow');
+          void statsEl.offsetWidth;
+          statsEl.classList.add('glow');
+          showPopup(`Combo x${combo}!`);
+        }
+      } else {
+        playErrorSound();
+        charStatus[typedIndex] = 'wrong';
+        errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
+        combo = 0;
+        score = Math.max(0, score - 5);
 
-  const elapsedMin = (performance.now() - startTime) / 60000;
-  const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
-  const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
-  document.getElementById('wpm').textContent = wpm;
-  document.getElementById('accuracy').textContent = accuracy;
+        const passageEl = document.getElementById('passage');
+        passageEl.classList.remove('shake');
+        void passageEl.offsetWidth;
+        passageEl.classList.add('shake');
+      }
 
-  if (typedIndex === passage.text.length) {
-    finishRun();
-  }
-});
+      document.getElementById('score').textContent = score;
+      document.getElementById('combo').textContent = combo;
+
+      charTimings[typedIndex] = Math.round(performance.now() - startTime);
+      typedIndex++;
+
+      renderPassage();
+
+      const elapsedMin = (performance.now() - startTime) / 60000;
+      const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
+      const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
+      document.getElementById('wpm').textContent = wpm;
+      document.getElementById('accuracy').textContent = accuracy;
+
+      if (typedIndex === passage.text.length) {
+        finishRun();
+      }
+    });
 
     document.getElementById('passage').addEventListener('click', () => {
       document.getElementById('hidden-input').focus();
@@ -286,5 +375,6 @@ document.addEventListener('keydown', (e) => {
 
     loadPassage();
   </script>
+
 </body>
 </html>

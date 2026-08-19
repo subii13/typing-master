@@ -2,351 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>keyrace</title>
-
-  <style>
-    @keyframes popup {
-      0% { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-40px); opacity: 0; }
-    }
-    .popup-text {
-      position: absolute;
-      font-weight: bold;
-      font-size: 1.2em;
-      color: gold;
-      pointer-events: none;
-      animation: popup 0.8s ease-out forwards;
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
-    }
-    @keyframes glow {
-      0% { box-shadow: 0 0 0px gold; }
-      50% { box-shadow: 0 0 20px gold; }
-      100% { box-shadow: 0 0 0px gold; }
-    }
-    .shake { animation: shake 0.3s; }
-    .glow { animation: glow 0.5s; }
-  </style>
+  <title>keyrace admin</title>
 </head>
 <body>
+  <h1>Add a passage</h1>
+  <p>Use actual line breaks in the box below for multi-line passages — no need to type \n manually.</p>
 
-  <h1>keyrace</h1>
+  <textarea id="passage-text" rows="6" cols="60" placeholder="Type or paste passage text here..."></textarea>
+  <br><br>
+  <button id="submit-btn">Add passage</button>
 
-  <nav>
-    <button id="tab-type">type</button>
-    <button id="tab-history">history</button>
-    <button id="tab-heatmap">heatmap</button>
-  </nav>
-
-  <div id="view-type">
-    <div id="stats">
-      <span>WPM: <b id="wpm">0</b></span>
-      <span>Accuracy: <b id="accuracy">100</b>%</span>
-      <span>Ghost: <b id="ghost-wpm">—</b></span>
-      <span>Score: <b id="score">0</b></span>
-      <span>Combo: <b id="combo">0</b></span>
-    </div>
-
-    <div id="race-track" style="position:relative; height:30px; background:#eee; margin-bottom:10px;">
-      <div id="ghost-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:orange;"></div>
-      <div id="player-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:blue;"></div>
-    </div>
-
-    <p id="passage"></p>
-    <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
-  </div>
-
-  <div id="view-history" style="display:none;">
-    <table border="1" cellpadding="6">
-      <thead>
-        <tr><th>Passage ID</th><th>WPM</th><th>Accuracy</th></tr>
-      </thead>
-      <tbody id="history-body"></tbody>
-    </table>
-  </div>
-
-  <div id="view-heatmap" style="display:none;">
-    <div id="heatmap-grid"></div>
-  </div>
+  <p id="status"></p>
 
   <script>
-    let passage = null;
-    let typedIndex = 0;
-    let startTime = null;
-    let totalKeystrokes = 0;
-    let correctKeystrokes = 0;
-    let charStatus = [];
-    let errorsByChar = {};
-    let charTimings = [];
-    let ghost = null;
-    let ghostTimings = null;
-    let score = 0;
-    let combo = 0;
-
-    async function loadPassage() {
-      const res = await fetch('/api/passages/random');
-      passage = await res.json();
-
-      typedIndex = 0;
-      startTime = null;
-      totalKeystrokes = 0;
-      correctKeystrokes = 0;
-      score = 0;
-      combo = 0;
-      charStatus = [];
-      charTimings = [];
-      errorsByChar = {};
-
-      const ghostRes = await fetch(`/api/sessions/ghost/${passage.id}`);
-      const ghostText = await ghostRes.text();
-      ghost = ghostText ? JSON.parse(ghostText) : null;
-      ghostTimings = (ghost && ghost.timingArrayJson) ? JSON.parse(ghost.timingArrayJson) : null;
-
-      document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
-      document.getElementById('score').textContent = score;
-      document.getElementById('combo').textContent = combo;
-
-      renderPassage();
-      document.getElementById('hidden-input').focus();
-    }
-
-    function getCurrentLineInfo() {
-      const lines = passage.text.split('\n');
-      let charsSeen = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const lineLength = lines[i].length;
-        if (typedIndex <= charsSeen + lineLength) {
-          return { lineIndex: i, lines: lines, offsetInLine: typedIndex - charsSeen };
-        }
-        charsSeen += lineLength + 1;
-      }
-      return { lineIndex: lines.length - 1, lines: lines, offsetInLine: 0 };
-    }
-
-    function getGlobalIndexForLineChar(lineIndex, i) {
-      const lines = passage.text.split('\n');
-      let charsSeen = 0;
-      for (let l = 0; l < lineIndex; l++) {
-        charsSeen += lines[l].length + 1;
-      }
-      return charsSeen + i;
-    }
-
-    function showPopup(text) {
-      const passageEl = document.getElementById('passage');
-      const popup = document.createElement('div');
-      popup.className = 'popup-text';
-      popup.textContent = text;
-      popup.style.left = '50%';
-      popup.style.top = '-30px';
-      passageEl.style.position = 'relative';
-      passageEl.appendChild(popup);
-
-      setTimeout(() => popup.remove(), 800);
-    }
-
-    function renderPassage() {
-      const { lineIndex, lines, offsetInLine } = getCurrentLineInfo();
-      const currentLine = lines[lineIndex];
-      const nextLine = lines[lineIndex + 1] || '';
-
-      const currentHtml = currentLine.split('').map((c, i) => {
-        let color = 'black';
-        if (i < offsetInLine) {
-          const globalCharIndex = getGlobalIndexForLineChar(lineIndex, i);
-          color = charStatus[globalCharIndex] === 'wrong' ? 'red' : 'green';
-        }
-        return `<span style="color:${color}">${c}</span>`;
-      }).join('');
-
-      const previewHtml = `<div style="color:#ccc; margin-top:4px;">${nextLine}</div>`;
-
-      document.getElementById('passage').innerHTML = currentHtml + previewHtml;
-    }
-
-    async function finishRun() {
-      const elapsedMs = performance.now() - startTime;
-      const minutes = elapsedMs / 60000;
-      const wpm = (passage.text.length / 5) / minutes;
-      const accuracy = (correctKeystrokes / totalKeystrokes) * 100;
-
-      document.getElementById('wpm').textContent = Math.round(wpm);
-      document.getElementById('accuracy').textContent = Math.round(accuracy);
-
-      const res = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          passageId: passage.id,
-          wpm: wpm,
-          accuracy: accuracy,
-          errorsByChar: errorsByChar,
-          charTimings: charTimings
-        })
-      });
-      const saved = await res.json();
-      console.log('Session saved:', saved);
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (!passage) return;
-      if (typedIndex >= passage.text.length) return;
-
-      const expected = passage.text[typedIndex];
-      const isNewlineExpected = expected === '\n';
-
-      if (isNewlineExpected) {
-        if (e.key !== 'Enter') return;
-      } else if (e.key.length !== 1) {
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      const text = document.getElementById('passage-text').value.trim();
+      if (!text) {
+        document.getElementById('status').textContent = 'Please enter some text first.';
         return;
       }
 
-      e.preventDefault();
+      const res = await fetch('/api/passages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+      });
 
-      if (startTime === null) {
-        startTime = performance.now();
-        animateGhost();
-      }
-
-      totalKeystrokes++;
-      const isCorrect = isNewlineExpected ? true : (e.key === expected);
-
-      if (isCorrect) {
-        correctKeystrokes++;
-        charStatus[typedIndex] = 'correct';
-        combo++;
-
-        const multiplier = 1 + Math.floor(combo / 10) * 0.5;
-        score += Math.round(10 * multiplier);
-
-        if (combo > 0 && combo % 10 === 0) {
-          const statsEl = document.getElementById('stats');
-          statsEl.classList.remove('glow');
-          void statsEl.offsetWidth;
-          statsEl.classList.add('glow');
-          showPopup(`Combo x${combo}!`);
-        }
+      if (res.ok) {
+        const saved = await res.json();
+        document.getElementById('status').textContent = `Saved! New passage id: ${saved.id}`;
+        document.getElementById('passage-text').value = '';
       } else {
-        charStatus[typedIndex] = 'wrong';
-        errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
-        combo = 0;
-        score = Math.max(0, score - 5);
-
-        const passageEl = document.getElementById('passage');
-        passageEl.classList.remove('shake');
-        void passageEl.offsetWidth;
-        passageEl.classList.add('shake');
-      }
-
-      document.getElementById('score').textContent = score;
-      document.getElementById('combo').textContent = combo;
-
-      charTimings[typedIndex] = Math.round(performance.now() - startTime);
-      typedIndex++;
-
-      renderPassage();
-
-      const elapsedMin = (performance.now() - startTime) / 60000;
-      const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
-      const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
-      document.getElementById('wpm').textContent = wpm;
-      document.getElementById('accuracy').textContent = accuracy;
-
-      if (typedIndex === passage.text.length) {
-        finishRun();
+        document.getElementById('status').textContent = 'Something went wrong — check the console.';
       }
     });
-
-    document.getElementById('passage').addEventListener('click', () => {
-      document.getElementById('hidden-input').focus();
-    });
-
-    async function loadHistory() {
-      const res = await fetch('/api/sessions');
-      const sessions = await res.json();
-      const body = document.getElementById('history-body');
-      body.innerHTML = sessions.map(s => `
-        <tr>
-          <td>${s.passageId}</td>
-          <td>${s.wpm.toFixed(1)}</td>
-          <td>${s.accuracy.toFixed(1)}%</td>
-        </tr>
-      `).join('');
-    }
-
-    async function loadHeatmap() {
-      const res = await fetch('/api/sessions/heatmap');
-      const data = await res.json();
-      const grid = document.getElementById('heatmap-grid');
-
-      const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
-      const max = entries.length ? entries[0][1] : 1;
-
-      grid.innerHTML = entries.map(([char, count]) => {
-        const intensity = count / max;
-        const label = char === ' ' ? '(space)' : char;
-        return `<span style="display:inline-block; padding:8px 12px; margin:4px;
-          background: rgba(255,0,0,${intensity}); border:1px solid #ccc;">
-          ${label}: ${count}
-        </span>`;
-      }).join('');
-    }
-
-    function showView(view) {
-      document.getElementById('view-type').style.display = view === 'type' ? 'block' : 'none';
-      document.getElementById('view-history').style.display = view === 'history' ? 'block' : 'none';
-      document.getElementById('view-heatmap').style.display = view === 'heatmap' ? 'block' : 'none';
-    }
-
-    function ghostIndexAtTime(elapsedMs) {
-      if (!ghostTimings) return 0;
-      let idx = 0;
-      while (idx < ghostTimings.length && ghostTimings[idx] <= elapsedMs) {
-        idx++;
-      }
-      return idx;
-    }
-
-    function updateMarkers(ghostIdx) {
-      const total = passage.text.length;
-      const trackWidth = document.getElementById('race-track').offsetWidth;
-
-      const playerPct = typedIndex / total;
-      const ghostPct = ghostIdx / total;
-
-      document.getElementById('player-marker').style.left = (playerPct * trackWidth) + 'px';
-      document.getElementById('ghost-marker').style.left = (ghostPct * trackWidth) + 'px';
-    }
-
-    function animateGhost() {
-      if (!startTime || typedIndex >= passage.text.length) return;
-
-      const elapsedMs = performance.now() - startTime;
-      const ghostIdx = ghostIndexAtTime(elapsedMs);
-      updateMarkers(ghostIdx);
-
-      requestAnimationFrame(animateGhost);
-    }
-
-    document.getElementById('tab-type').addEventListener('click', () => {
-      showView('type');
-    });
-
-    document.getElementById('tab-history').addEventListener('click', () => {
-      showView('history');
-      loadHistory();
-    });
-
-    document.getElementById('tab-heatmap').addEventListener('click', () => {
-      showView('heatmap');
-      loadHeatmap();
-    });
-
-    loadPassage();
   </script>
-
 </body>
 </html>
