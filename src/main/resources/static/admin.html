@@ -3,7 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <title>keyrace</title>
+
   <style>
+    @keyframes popup {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-40px); opacity: 0; }
+    }
+    .popup-text {
+      position: absolute;
+      font-weight: bold;
+      font-size: 1.2em;
+      color: gold;
+      pointer-events: none;
+      animation: popup 0.8s ease-out forwards;
+    }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
       20%, 60% { transform: translateX(-8px); }
@@ -19,7 +32,9 @@
   </style>
 </head>
 <body>
+
   <h1>keyrace</h1>
+
   <nav>
     <button id="tab-type">type</button>
     <button id="tab-history">history</button>
@@ -34,10 +49,12 @@
       <span>Score: <b id="score">0</b></span>
       <span>Combo: <b id="combo">0</b></span>
     </div>
+
     <div id="race-track" style="position:relative; height:30px; background:#eee; margin-bottom:10px;">
       <div id="ghost-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:orange;"></div>
       <div id="player-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:blue;"></div>
     </div>
+
     <p id="passage"></p>
     <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
   </div>
@@ -72,6 +89,7 @@
     async function loadPassage() {
       const res = await fetch('/api/passages/random');
       passage = await res.json();
+
       typedIndex = 0;
       startTime = null;
       totalKeystrokes = 0;
@@ -90,6 +108,7 @@
       document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
       document.getElementById('score').textContent = score;
       document.getElementById('combo').textContent = combo;
+
       renderPassage();
       document.getElementById('hidden-input').focus();
     }
@@ -114,6 +133,19 @@
         charsSeen += lines[l].length + 1;
       }
       return charsSeen + i;
+    }
+
+    function showPopup(text) {
+      const passageEl = document.getElementById('passage');
+      const popup = document.createElement('div');
+      popup.className = 'popup-text';
+      popup.textContent = text;
+      popup.style.left = '50%';
+      popup.style.top = '-30px';
+      passageEl.style.position = 'relative';
+      passageEl.appendChild(popup);
+
+      setTimeout(() => popup.remove(), 800);
     }
 
     function renderPassage() {
@@ -186,6 +218,7 @@
         correctKeystrokes++;
         charStatus[typedIndex] = 'correct';
         combo++;
+
         const multiplier = 1 + Math.floor(combo / 10) * 0.5;
         score += Math.round(10 * multiplier);
 
@@ -194,6 +227,7 @@
           statsEl.classList.remove('glow');
           void statsEl.offsetWidth;
           statsEl.classList.add('glow');
+          showPopup(`Combo x${combo}!`);
         }
       } else {
         charStatus[typedIndex] = 'wrong';
@@ -209,6 +243,7 @@
 
       document.getElementById('score').textContent = score;
       document.getElementById('combo').textContent = combo;
+
       charTimings[typedIndex] = Math.round(performance.now() - startTime);
       typedIndex++;
 
@@ -312,5 +347,6 @@
 
     loadPassage();
   </script>
+
 </body>
 </html>
