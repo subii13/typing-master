@@ -12,7 +12,6 @@
     --text-light: #f0f4f0;
   }
 
-  /* ---------- theme palettes ---------- */
   body[data-theme="forest"] {
     --bg-1: #0b2e1d; --bg-2: #1a4a2e;
     --panel-bg: rgba(20, 61, 36, 0.85);
@@ -21,7 +20,6 @@
     --track-bg: linear-gradient(to right, #3e2a1a, #5c3d24, #3e2a1a);
     --correct-color: #a5d6a7;
     --wrong-color: #ff8a80;
-    --theme-label: "🌲 forest theme";
   }
   body[data-theme="galaxy"] {
     --bg-1: #0a0a20; --bg-2: #1a1040;
@@ -31,7 +29,6 @@
     --track-bg: linear-gradient(to right, #1a1040, #4a2f8a, #1a1040);
     --correct-color: #90caf9;
     --wrong-color: #ff8a80;
-    --theme-label: "🚀 galaxy theme";
   }
   body[data-theme="sea"] {
     --bg-1: #042c3c; --bg-2: #0a4a63;
@@ -41,7 +38,6 @@
     --track-bg: linear-gradient(to right, #063a4f, #0f6a8f, #063a4f);
     --correct-color: #80deea;
     --wrong-color: #ffab91;
-    --theme-label: "🌊 sea theme";
   }
 
   * { box-sizing: border-box; }
@@ -61,53 +57,30 @@
   h1, .panel-title { font-family: 'Baloo 2', cursive; }
 
   .deco {
-    position: fixed;
-    top: -30px;
-    font-size: 22px;
-    opacity: 0.6;
-    animation: fall linear infinite;
-    pointer-events: none;
-    z-index: 0;
+    position: fixed; top: -30px; font-size: 22px; opacity: 0.6;
+    animation: fall linear infinite; pointer-events: none; z-index: 0;
   }
   @keyframes fall {
     0% { transform: translateY(0) translateX(0) rotate(0deg); }
     100% { transform: translateY(110vh) translateX(60px) rotate(360deg); }
   }
 
-  .header {
-    position: relative; z-index: 1;
-    text-align: center;
-    margin-bottom: 16px;
-  }
+  .header { position: relative; z-index: 1; text-align: center; margin-bottom: 16px; }
   .header h1 {
-    font-size: 2rem;
-    color: var(--gold);
-    margin: 0;
+    font-size: 2rem; color: var(--gold); margin: 0;
     text-shadow: 0 0 12px rgba(232,196,104,0.5);
   }
   .header .subtitle {
-    color: var(--accent);
-    font-size: 0.85rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    color: var(--accent); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;
   }
 
   .theme-switcher {
-    position: relative; z-index: 1;
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 20px;
+    position: relative; z-index: 1; display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;
   }
   .theme-btn {
-    background: rgba(0,0,0,0.3);
-    border: 2px solid var(--panel-border);
-    color: var(--text-light);
-    padding: 6px 14px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-family: 'Nunito', sans-serif;
-    font-size: 0.8rem;
+    background: rgba(0,0,0,0.3); border: 2px solid var(--panel-border); color: var(--text-light);
+    padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 0.8rem;
     transition: transform 0.15s, background 0.15s;
   }
   .theme-btn:hover { transform: scale(1.05); }
@@ -123,6 +96,8 @@
     align-items: start;
   }
 
+  .right-col { display: flex; flex-direction: column; gap: 16px; }
+
   .panel {
     background: var(--panel-bg);
     border: 3px solid var(--panel-border);
@@ -132,44 +107,31 @@
     transition: background 0.6s ease, border-color 0.6s ease;
   }
   .panel-title {
-    color: var(--gold);
-    font-size: 1rem;
-    margin: 0 0 12px;
-    border-bottom: 2px solid var(--panel-border);
-    padding-bottom: 6px;
+    color: var(--gold); font-size: 1rem; margin: 0 0 12px;
+    border-bottom: 2px solid var(--panel-border); padding-bottom: 6px;
   }
 
   .stat-block {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 10px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    padding: 8px 12px;
+    margin-bottom: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 8px 12px;
   }
   .stat-block .label { font-size: 0.75rem; color: var(--accent); }
   .stat-block .value { font-size: 1.3rem; font-weight: 700; color: var(--text-light); }
 
   .race-track {
-    position: relative; height: 50px;
-    background: var(--track-bg);
-    border-radius: 25px;
-    margin-bottom: 16px;
-    border: 2px solid var(--panel-border);
+    position: relative; height: 50px; background: var(--track-bg);
+    border-radius: 25px; margin-bottom: 16px; border: 2px solid var(--panel-border);
   }
   .racer {
-    position: absolute; top: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 28px;
-    transition: left 0.08s linear;
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    font-size: 28px; transition: left 0.08s linear;
     filter: drop-shadow(0 0 4px rgba(0,0,0,0.6));
   }
   .finish-flag { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 24px; }
 
   .passage-box {
-    background: rgba(0,0,0,0.25);
-    border-radius: 12px; padding: 20px;
-    font-size: 1.2rem; line-height: 2;
-    min-height: 100px; cursor: text;
+    background: rgba(0,0,0,0.25); border-radius: 12px; padding: 20px;
+    font-size: 1.2rem; line-height: 2; min-height: 100px; cursor: text;
   }
   .passage-box .preview-line { color: rgba(240,244,240,0.35); margin-top: 6px; }
 
@@ -183,14 +145,19 @@
   .keyboard-heatmap { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
   .kb-row { display: flex; gap: 4px; justify-content: center; }
   .kb-key {
-    width: 26px; height: 26px;
-    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
     border-radius: 6px; font-size: 0.7rem;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid var(--panel-border);
-    color: var(--text-light);
+    background: rgba(0,0,0,0.25); border: 1px solid var(--panel-border); color: var(--text-light);
   }
   .kb-key.space { width: 140px; }
+
+  .achievements-list { display: flex; flex-direction: column; gap: 6px; }
+  .achievement-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 8px; font-size: 0.8rem;
+    background: rgba(0,0,0,0.2);
+  }
+  .achievement-item.locked { opacity: 0.35; }
 
   @keyframes popup {
     0% { transform: translateY(0); opacity: 1; }
@@ -258,16 +225,30 @@
     </div>
 
     <div class="right-col">
-      <div class="panel" style="margin-bottom:16px;">
+      <div class="panel">
         <div class="panel-title">History</div>
         <table class="history-table">
           <thead><tr><th>ID</th><th>WPM</th><th>Acc</th></tr></thead>
           <tbody id="history-body"></tbody>
         </table>
       </div>
+
       <div class="panel">
         <div class="panel-title">Heatmap (Errors)</div>
         <div class="keyboard-heatmap" id="heatmap-grid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🏆 Leaderboard</div>
+        <table class="history-table">
+          <thead><tr><th>#</th><th>WPM</th><th>Acc</th></tr></thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🎖️ Achievements</div>
+        <div class="achievements-list" id="achievements-list"></div>
       </div>
     </div>
 
@@ -328,6 +309,44 @@
   function playCorrectSound() { playTone(800, 0.05); }
   function playErrorSound() { playTone(150, 0.15, 'sawtooth'); }
 
+  // ---------- achievements ----------
+  const ACHIEVEMENTS = [
+    { id: 'first_run', name: '🎉 First Steps', check: (s) => true },
+    { id: 'speed_50', name: '⚡ 50 WPM Club', check: (s) => s.wpm >= 50 },
+    { id: 'speed_80', name: '🚀 80 WPM Speedster', check: (s) => s.wpm >= 80 },
+    { id: 'perfect', name: '💯 Perfect Accuracy', check: (s) => s.accuracy === 100 },
+    { id: 'combo_20', name: '🔥 Combo Master (20)', check: (s, maxCombo) => maxCombo >= 20 },
+    { id: 'beat_ghost', name: '👻 Ghost Slayer', check: (s, maxCombo, beatGhost) => beatGhost === true }
+  ];
+
+  function checkAchievements(sessionResult, maxComboThisRun, beatGhostThisRun) {
+    const unlocked = JSON.parse(localStorage.getItem('keyrace-achievements') || '[]');
+    let changed = false;
+
+    ACHIEVEMENTS.forEach(ach => {
+      if (unlocked.includes(ach.id)) return;
+      if (ach.check(sessionResult, maxComboThisRun, beatGhostThisRun)) {
+        unlocked.push(ach.id);
+        changed = true;
+        showPopup(`Achievement: ${ach.name}`);
+      }
+    });
+
+    if (changed) {
+      localStorage.setItem('keyrace-achievements', JSON.stringify(unlocked));
+    }
+    renderAchievementsList();
+  }
+
+  function renderAchievementsList() {
+    const unlocked = JSON.parse(localStorage.getItem('keyrace-achievements') || '[]');
+    const list = document.getElementById('achievements-list');
+    list.innerHTML = ACHIEVEMENTS.map(ach => {
+      const has = unlocked.includes(ach.id);
+      return `<div class="achievement-item ${has ? '' : 'locked'}">${ach.name}</div>`;
+    }).join('');
+  }
+
   // ---------- game state ----------
   let passage = null;
   let typedIndex = 0;
@@ -341,6 +360,7 @@
   let ghostTimings = null;
   let score = 0;
   let combo = 0;
+  let maxCombo = 0;
 
   async function loadPassage() {
     const res = await fetch('/api/passages/random');
@@ -352,6 +372,7 @@
     correctKeystrokes = 0;
     score = 0;
     combo = 0;
+    maxCombo = 0;
     charStatus = [];
     charTimings = [];
     errorsByChar = {};
@@ -446,8 +467,13 @@
     });
     const saved = await res.json();
     console.log('Session saved:', saved);
+
     loadHistory();
     loadHeatmap();
+    loadLeaderboard();
+
+    const beatGhost = ghost ? wpm > ghost.wpm : false;
+    checkAchievements({ wpm, accuracy }, maxCombo, beatGhost);
   }
 
   document.addEventListener('keydown', (e) => {
@@ -478,6 +504,7 @@
       correctKeystrokes++;
       charStatus[typedIndex] = 'correct';
       combo++;
+      if (combo > maxCombo) maxCombo = combo;
 
       const multiplier = 1 + Math.floor(combo / 10) * 0.5;
       score += Math.round(10 * multiplier);
@@ -584,6 +611,19 @@
     grid.appendChild(spaceRow);
   }
 
+  async function loadLeaderboard() {
+    const res = await fetch('/api/sessions/leaderboard');
+    const sessions = await res.json();
+    const body = document.getElementById('leaderboard-body');
+    body.innerHTML = sessions.map((s, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${s.wpm.toFixed(1)}</td>
+        <td>${s.accuracy.toFixed(0)}%</td>
+      </tr>
+    `).join('');
+  }
+
   function ghostIndexAtTime(elapsedMs) {
     if (!ghostTimings) return 0;
     let idx = 0;
@@ -617,6 +657,8 @@
   loadPassage();
   loadHistory();
   loadHeatmap();
+  loadLeaderboard();
+  renderAchievementsList();
 </script>
 
 </body>
