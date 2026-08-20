@@ -1,380 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>keyrace</title>
+<meta charset="UTF-8">
+<title>keyrace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
 
-  <style>
-    @keyframes popup {
-      0% { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-40px); opacity: 0; }
-    }
-    .popup-text {
-      position: absolute;
-      font-weight: bold;
-      font-size: 1.2em;
-      color: gold;
-      pointer-events: none;
-      animation: popup 0.8s ease-out forwards;
-    }
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
-    }
-    @keyframes glow {
-      0% { box-shadow: 0 0 0px gold; }
-      50% { box-shadow: 0 0 20px gold; }
-      100% { box-shadow: 0 0 0px gold; }
-    }
-    .shake { animation: shake 0.3s; }
-    .glow { animation: glow 0.5s; }
-  </style>
+<style>
+  :root {
+    --gold: #e8c468;
+    --text-light: #f0f4f0;
+  }
+
+  /* ---------- theme palettes ---------- */
+  body[data-theme="forest"] {
+    --bg-1: #0b2e1d; --bg-2: #1a4a2e;
+    --panel-bg: rgba(20, 61, 36, 0.85);
+    --panel-border: #5c3d24;
+    --accent: #7fcf7f;
+    --track-bg: linear-gradient(to right, #3e2a1a, #5c3d24, #3e2a1a);
+    --correct-color: #a5d6a7;
+    --wrong-color: #ff8a80;
+    --theme-label: "🌲 forest theme";
+  }
+  body[data-theme="galaxy"] {
+    --bg-1: #0a0a20; --bg-2: #1a1040;
+    --panel-bg: rgba(20, 15, 50, 0.85);
+    --panel-border: #6a4fc0;
+    --accent: #b39ddb;
+    --track-bg: linear-gradient(to right, #1a1040, #4a2f8a, #1a1040);
+    --correct-color: #90caf9;
+    --wrong-color: #ff8a80;
+    --theme-label: "🚀 galaxy theme";
+  }
+  body[data-theme="sea"] {
+    --bg-1: #042c3c; --bg-2: #0a4a63;
+    --panel-bg: rgba(10, 50, 70, 0.85);
+    --panel-border: #1f8ab0;
+    --accent: #6fe0ff;
+    --track-bg: linear-gradient(to right, #063a4f, #0f6a8f, #063a4f);
+    --correct-color: #80deea;
+    --wrong-color: #ffab91;
+    --theme-label: "🌊 sea theme";
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, var(--bg-1), var(--bg-2), var(--bg-1));
+    overflow-x: hidden;
+    position: relative;
+    font-family: 'Nunito', sans-serif;
+    color: var(--text-light);
+    padding: 20px;
+    transition: background 0.6s ease;
+  }
+
+  h1, .panel-title { font-family: 'Baloo 2', cursive; }
+
+  .deco {
+    position: fixed;
+    top: -30px;
+    font-size: 22px;
+    opacity: 0.6;
+    animation: fall linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  @keyframes fall {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); }
+    100% { transform: translateY(110vh) translateX(60px) rotate(360deg); }
+  }
+
+  .header {
+    position: relative; z-index: 1;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    color: var(--gold);
+    margin: 0;
+    text-shadow: 0 0 12px rgba(232,196,104,0.5);
+  }
+  .header .subtitle {
+    color: var(--accent);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .theme-switcher {
+    position: relative; z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .theme-btn {
+    background: rgba(0,0,0,0.3);
+    border: 2px solid var(--panel-border);
+    color: var(--text-light);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .theme-btn:hover { transform: scale(1.05); }
+  .theme-btn.active { background: var(--accent); color: #0b0b0b; font-weight: 700; }
+
+  .layout-grid {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 220px 1fr 260px;
+    gap: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 3px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 0 20px rgba(0,0,0,0.2);
+    transition: background 0.6s ease, border-color 0.6s ease;
+  }
+  .panel-title {
+    color: var(--gold);
+    font-size: 1rem;
+    margin: 0 0 12px;
+    border-bottom: 2px solid var(--panel-border);
+    padding-bottom: 6px;
+  }
+
+  .stat-block {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .stat-block .label { font-size: 0.75rem; color: var(--accent); }
+  .stat-block .value { font-size: 1.3rem; font-weight: 700; color: var(--text-light); }
+
+  .race-track {
+    position: relative; height: 50px;
+    background: var(--track-bg);
+    border-radius: 25px;
+    margin-bottom: 16px;
+    border: 2px solid var(--panel-border);
+  }
+  .racer {
+    position: absolute; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    transition: left 0.08s linear;
+    filter: drop-shadow(0 0 4px rgba(0,0,0,0.6));
+  }
+  .finish-flag { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 24px; }
+
+  .passage-box {
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px; padding: 20px;
+    font-size: 1.2rem; line-height: 2;
+    min-height: 100px; cursor: text;
+  }
+  .passage-box .preview-line { color: rgba(240,244,240,0.35); margin-top: 6px; }
+
+  .history-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .history-table th {
+    text-align: left; color: var(--accent); font-weight: 600;
+    padding: 4px 6px; border-bottom: 1px solid var(--panel-border);
+  }
+  .history-table td { padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+  .keyboard-heatmap { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .kb-row { display: flex; gap: 4px; justify-content: center; }
+  .kb-key {
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 0.7rem;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--panel-border);
+    color: var(--text-light);
+  }
+  .kb-key.space { width: 140px; }
+
+  @keyframes popup {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-40px); opacity: 0; }
+  }
+  .popup-text {
+    position: absolute; font-weight: bold; font-size: 1.2em;
+    color: var(--gold); pointer-events: none;
+    animation: popup 0.8s ease-out forwards;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+  @keyframes glow {
+    0% { box-shadow: 0 0 0px var(--gold); }
+    50% { box-shadow: 0 0 24px var(--gold); }
+    100% { box-shadow: 0 0 0px var(--gold); }
+  }
+  .shake { animation: shake 0.3s; }
+  .glow { animation: glow 0.5s; }
+
+  .hidden-input { position: absolute; opacity: 0; pointer-events: none; }
+
+  @media (max-width: 900px) {
+    .layout-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
-<body>
+<body data-theme="forest">
 
-  <h1>keyrace</h1>
+  <div id="deco-layer"></div>
 
-  <nav>
-    <button id="tab-type">type</button>
-    <button id="tab-history">history</button>
-    <button id="tab-heatmap">heatmap</button>
-  </nav>
+  <div class="header">
+    <h1>🌲 keyrace</h1>
+    <div class="subtitle" id="theme-label">forest theme</div>
+  </div>
 
-  <div id="view-type">
-    <div id="stats">
-      <span>WPM: <b id="wpm">0</b></span>
-      <span>Accuracy: <b id="accuracy">100</b>%</span>
-      <span>Ghost: <b id="ghost-wpm">—</b></span>
-      <span>Score: <b id="score">0</b></span>
-      <span>Combo: <b id="combo">0</b></span>
+  <div class="theme-switcher">
+    <button class="theme-btn active" data-theme="forest">🌲 Forest</button>
+    <button class="theme-btn" data-theme="galaxy">🚀 Galaxy</button>
+    <button class="theme-btn" data-theme="sea">🌊 Sea</button>
+  </div>
+
+  <div class="layout-grid">
+
+    <div class="panel">
+      <div class="panel-title">Stats</div>
+      <div class="stat-block"><span class="label">WPM</span><span class="value" id="wpm">0</span></div>
+      <div class="stat-block"><span class="label">Accuracy</span><span class="value" id="accuracy">100%</span></div>
+      <div class="stat-block"><span class="label">Ghost</span><span class="value" id="ghost-wpm">—</span></div>
+      <div class="stat-block" id="stats"><span class="label">Score</span><span class="value" id="score">0</span></div>
+      <div class="stat-block"><span class="label">Combo</span><span class="value" id="combo">0</span></div>
     </div>
 
-    <div id="race-track" style="position:relative; height:30px; background:#eee; margin-bottom:10px;">
-      <div id="ghost-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:orange;"></div>
-      <div id="player-marker" style="position:absolute; top:0; left:0; width:4px; height:100%; background:blue;"></div>
+    <div class="panel">
+      <div class="race-track" id="race-track">
+        <div class="racer" id="player-marker" style="left:20px;">🦌</div>
+        <div class="racer" id="ghost-marker" style="left:20px;">👻</div>
+        <div class="finish-flag">🏁</div>
+      </div>
+      <div class="passage-box" id="passage"></div>
+      <input type="text" id="hidden-input" class="hidden-input" autocomplete="off" />
     </div>
 
-    <p id="passage"></p>
-    <input type="text" id="hidden-input" autocomplete="off" style="position:absolute; opacity:0;" />
+    <div class="right-col">
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-title">History</div>
+        <table class="history-table">
+          <thead><tr><th>ID</th><th>WPM</th><th>Acc</th></tr></thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Heatmap (Errors)</div>
+        <div class="keyboard-heatmap" id="heatmap-grid"></div>
+      </div>
+    </div>
+
   </div>
 
-  <div id="view-history" style="display:none;">
-    <table border="1" cellpadding="6">
-      <thead>
-        <tr><th>Passage ID</th><th>WPM</th><th>Accuracy</th></tr>
-      </thead>
-      <tbody id="history-body"></tbody>
-    </table>
-  </div>
+<script>
+  // ---------- theme config ----------
+  const THEMES = {
+    forest: { player: '🦌', ghost: '👻', deco: ['🍃','🍂','🍃','🍂','🍃'], label: 'forest theme' },
+    galaxy: { player: '🚀', ghost: '👽', deco: ['⭐','✨','🪐','⭐','✨'], label: 'galaxy theme' },
+    sea:    { player: '🐠', ghost: '🎣', deco: ['🫧','🫧','🐚','🫧','🫧'], label: 'sea theme' }
+  };
 
-  <div id="view-heatmap" style="display:none;">
-    <div id="heatmap-grid"></div>
-  </div>
+  function applyTheme(themeName) {
+    document.body.setAttribute('data-theme', themeName);
+    document.getElementById('theme-label').textContent = THEMES[themeName].label;
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === themeName);
+    });
+    document.getElementById('player-marker').textContent = THEMES[themeName].player;
+    document.getElementById('ghost-marker').textContent = THEMES[themeName].ghost;
 
-  <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decoLayer = document.getElementById('deco-layer');
+    decoLayer.innerHTML = '';
+    THEMES[themeName].deco.forEach((emoji, i) => {
+      const el = document.createElement('div');
+      el.className = 'deco';
+      el.textContent = emoji;
+      el.style.left = (10 + i * 20) + '%';
+      el.style.animationDuration = (10 + i * 2) + 's';
+      el.style.animationDelay = (i * 1.5) + 's';
+      decoLayer.appendChild(el);
+    });
 
-    function playTone(frequency, duration, type = 'sine') {
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+    localStorage.setItem('keyrace-theme', themeName);
+  }
 
-      oscillator.type = type;
-      oscillator.frequency.value = frequency;
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+  });
 
-      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  applyTheme(localStorage.getItem('keyrace-theme') || 'forest');
 
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + duration);
+  // ---------- sound ----------
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playTone(frequency, duration, type = 'sine') {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.value = frequency;
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + duration);
+  }
+  function playCorrectSound() { playTone(800, 0.05); }
+  function playErrorSound() { playTone(150, 0.15, 'sawtooth'); }
+
+  // ---------- game state ----------
+  let passage = null;
+  let typedIndex = 0;
+  let startTime = null;
+  let totalKeystrokes = 0;
+  let correctKeystrokes = 0;
+  let charStatus = [];
+  let errorsByChar = {};
+  let charTimings = [];
+  let ghost = null;
+  let ghostTimings = null;
+  let score = 0;
+  let combo = 0;
+
+  async function loadPassage() {
+    const res = await fetch('/api/passages/random');
+    passage = await res.json();
+
+    typedIndex = 0;
+    startTime = null;
+    totalKeystrokes = 0;
+    correctKeystrokes = 0;
+    score = 0;
+    combo = 0;
+    charStatus = [];
+    charTimings = [];
+    errorsByChar = {};
+
+    const ghostRes = await fetch(`/api/sessions/ghost/${passage.id}`);
+    const ghostText = await ghostRes.text();
+    ghost = ghostText ? JSON.parse(ghostText) : null;
+    ghostTimings = (ghost && ghost.timingArrayJson) ? JSON.parse(ghost.timingArrayJson) : null;
+
+    document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
+    document.getElementById('score').textContent = score;
+    document.getElementById('combo').textContent = combo;
+    document.getElementById('player-marker').style.left = '20px';
+    document.getElementById('ghost-marker').style.left = '20px';
+
+    renderPassage();
+    document.getElementById('hidden-input').focus();
+  }
+
+  function getCurrentLineInfo() {
+    const lines = passage.text.split('\n');
+    let charsSeen = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const lineLength = lines[i].length;
+      if (typedIndex <= charsSeen + lineLength) {
+        return { lineIndex: i, lines: lines, offsetInLine: typedIndex - charsSeen };
+      }
+      charsSeen += lineLength + 1;
+    }
+    return { lineIndex: lines.length - 1, lines: lines, offsetInLine: 0 };
+  }
+
+  function getGlobalIndexForLineChar(lineIndex, i) {
+    const lines = passage.text.split('\n');
+    let charsSeen = 0;
+    for (let l = 0; l < lineIndex; l++) {
+      charsSeen += lines[l].length + 1;
+    }
+    return charsSeen + i;
+  }
+
+  function showPopup(text) {
+    const passageEl = document.getElementById('passage');
+    const popup = document.createElement('div');
+    popup.className = 'popup-text';
+    popup.textContent = text;
+    popup.style.left = '50%';
+    popup.style.top = '-10px';
+    passageEl.style.position = 'relative';
+    passageEl.appendChild(popup);
+    setTimeout(() => popup.remove(), 800);
+  }
+
+  function renderPassage() {
+    const { lineIndex, lines, offsetInLine } = getCurrentLineInfo();
+    const currentLine = lines[lineIndex];
+    const nextLine = lines[lineIndex + 1] || '';
+
+    const currentHtml = currentLine.split('').map((c, i) => {
+      let color = 'inherit';
+      if (i < offsetInLine) {
+        const globalCharIndex = getGlobalIndexForLineChar(lineIndex, i);
+        color = charStatus[globalCharIndex] === 'wrong' ? 'var(--wrong-color)' : 'var(--correct-color)';
+      }
+      return `<span style="color:${color}">${c}</span>`;
+    }).join('');
+
+    const previewHtml = `<div class="preview-line">${nextLine}</div>`;
+
+    document.getElementById('passage').innerHTML = currentHtml + previewHtml;
+  }
+
+  async function finishRun() {
+    const elapsedMs = performance.now() - startTime;
+    const minutes = elapsedMs / 60000;
+    const wpm = (passage.text.length / 5) / minutes;
+    const accuracy = (correctKeystrokes / totalKeystrokes) * 100;
+
+    document.getElementById('wpm').textContent = Math.round(wpm);
+    document.getElementById('accuracy').textContent = Math.round(accuracy) + '%';
+
+    const res = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        passageId: passage.id,
+        wpm: wpm,
+        accuracy: accuracy,
+        errorsByChar: errorsByChar,
+        charTimings: charTimings
+      })
+    });
+    const saved = await res.json();
+    console.log('Session saved:', saved);
+    loadHistory();
+    loadHeatmap();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (!passage) return;
+    if (typedIndex >= passage.text.length) return;
+
+    const expected = passage.text[typedIndex];
+    const isNewlineExpected = expected === '\n';
+
+    if (isNewlineExpected) {
+      if (e.key !== 'Enter') return;
+    } else if (e.key.length !== 1) {
+      return;
     }
 
-    function playCorrectSound() {
-      playTone(800, 0.05);
+    e.preventDefault();
+
+    if (startTime === null) {
+      startTime = performance.now();
+      animateGhost();
     }
 
-    function playErrorSound() {
-      playTone(150, 0.15, 'sawtooth');
-    }
+    totalKeystrokes++;
+    const isCorrect = isNewlineExpected ? true : (e.key === expected);
 
-    let passage = null;
-    let typedIndex = 0;
-    let startTime = null;
-    let totalKeystrokes = 0;
-    let correctKeystrokes = 0;
-    let charStatus = [];
-    let errorsByChar = {};
-    let charTimings = [];
-    let ghost = null;
-    let ghostTimings = null;
-    let score = 0;
-    let combo = 0;
+    if (isCorrect) {
+      playCorrectSound();
+      correctKeystrokes++;
+      charStatus[typedIndex] = 'correct';
+      combo++;
 
-    async function loadPassage() {
-      const res = await fetch('/api/passages/random');
-      passage = await res.json();
+      const multiplier = 1 + Math.floor(combo / 10) * 0.5;
+      score += Math.round(10 * multiplier);
 
-      typedIndex = 0;
-      startTime = null;
-      totalKeystrokes = 0;
-      correctKeystrokes = 0;
-      score = 0;
+      if (combo > 0 && combo % 10 === 0) {
+        const statsEl = document.getElementById('stats');
+        statsEl.classList.remove('glow');
+        void statsEl.offsetWidth;
+        statsEl.classList.add('glow');
+        showPopup(`Combo x${combo}!`);
+      }
+    } else {
+      playErrorSound();
+      charStatus[typedIndex] = 'wrong';
+      errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
       combo = 0;
-      charStatus = [];
-      charTimings = [];
-      errorsByChar = {};
+      score = Math.max(0, score - 5);
 
-      const ghostRes = await fetch(`/api/sessions/ghost/${passage.id}`);
-      const ghostText = await ghostRes.text();
-      ghost = ghostText ? JSON.parse(ghostText) : null;
-      ghostTimings = (ghost && ghost.timingArrayJson) ? JSON.parse(ghost.timingArrayJson) : null;
-
-      document.getElementById('ghost-wpm').textContent = ghost ? Math.round(ghost.wpm) : '—';
-      document.getElementById('score').textContent = score;
-      document.getElementById('combo').textContent = combo;
-
-      renderPassage();
-      document.getElementById('hidden-input').focus();
-    }
-
-    function getCurrentLineInfo() {
-      const lines = passage.text.split('\n');
-      let charsSeen = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const lineLength = lines[i].length;
-        if (typedIndex <= charsSeen + lineLength) {
-          return { lineIndex: i, lines: lines, offsetInLine: typedIndex - charsSeen };
-        }
-        charsSeen += lineLength + 1;
-      }
-      return { lineIndex: lines.length - 1, lines: lines, offsetInLine: 0 };
-    }
-
-    function getGlobalIndexForLineChar(lineIndex, i) {
-      const lines = passage.text.split('\n');
-      let charsSeen = 0;
-      for (let l = 0; l < lineIndex; l++) {
-        charsSeen += lines[l].length + 1;
-      }
-      return charsSeen + i;
-    }
-
-    function showPopup(text) {
       const passageEl = document.getElementById('passage');
-      const popup = document.createElement('div');
-      popup.className = 'popup-text';
-      popup.textContent = text;
-      popup.style.left = '50%';
-      popup.style.top = '-30px';
-      passageEl.style.position = 'relative';
-      passageEl.appendChild(popup);
-
-      setTimeout(() => popup.remove(), 800);
+      passageEl.classList.remove('shake');
+      void passageEl.offsetWidth;
+      passageEl.classList.add('shake');
     }
 
-    function renderPassage() {
-      const { lineIndex, lines, offsetInLine } = getCurrentLineInfo();
-      const currentLine = lines[lineIndex];
-      const nextLine = lines[lineIndex + 1] || '';
+    document.getElementById('score').textContent = score;
+    document.getElementById('combo').textContent = combo;
 
-      const currentHtml = currentLine.split('').map((c, i) => {
-        let color = 'black';
-        if (i < offsetInLine) {
-          const globalCharIndex = getGlobalIndexForLineChar(lineIndex, i);
-          color = charStatus[globalCharIndex] === 'wrong' ? 'red' : 'green';
-        }
-        return `<span style="color:${color}">${c}</span>`;
-      }).join('');
+    charTimings[typedIndex] = Math.round(performance.now() - startTime);
+    typedIndex++;
 
-      const previewHtml = `<div style="color:#ccc; margin-top:4px;">${nextLine}</div>`;
+    renderPassage();
 
-      document.getElementById('passage').innerHTML = currentHtml + previewHtml;
+    const elapsedMin = (performance.now() - startTime) / 60000;
+    const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
+    const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
+    document.getElementById('wpm').textContent = wpm;
+    document.getElementById('accuracy').textContent = accuracy + '%';
+
+    if (typedIndex === passage.text.length) {
+      finishRun();
     }
+  });
 
-    async function finishRun() {
-      const elapsedMs = performance.now() - startTime;
-      const minutes = elapsedMs / 60000;
-      const wpm = (passage.text.length / 5) / minutes;
-      const accuracy = (correctKeystrokes / totalKeystrokes) * 100;
+  document.getElementById('passage').addEventListener('click', () => {
+    document.getElementById('hidden-input').focus();
+  });
 
-      document.getElementById('wpm').textContent = Math.round(wpm);
-      document.getElementById('accuracy').textContent = Math.round(accuracy);
+  async function loadHistory() {
+    const res = await fetch('/api/sessions');
+    const sessions = await res.json();
+    const body = document.getElementById('history-body');
+    body.innerHTML = sessions.slice(-10).reverse().map(s => `
+      <tr>
+        <td>${s.passageId}</td>
+        <td>${s.wpm.toFixed(1)}</td>
+        <td>${s.accuracy.toFixed(0)}%</td>
+      </tr>
+    `).join('');
+  }
 
-      const res = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          passageId: passage.id,
-          wpm: wpm,
-          accuracy: accuracy,
-          errorsByChar: errorsByChar,
-          charTimings: charTimings
-        })
-      });
-      const saved = await res.json();
-      console.log('Session saved:', saved);
-    }
+  const KB_ROWS = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['z','x','c','v','b','n','m']
+  ];
 
-    document.addEventListener('keydown', (e) => {
-      if (!passage) return;
-      if (typedIndex >= passage.text.length) return;
+  async function loadHeatmap() {
+    const res = await fetch('/api/sessions/heatmap');
+    const data = await res.json();
+    const max = Math.max(1, ...Object.values(data));
 
-      const expected = passage.text[typedIndex];
-      const isNewlineExpected = expected === '\n';
+    const grid = document.getElementById('heatmap-grid');
+    grid.innerHTML = '';
 
-      if (isNewlineExpected) {
-        if (e.key !== 'Enter') return;
-      } else if (e.key.length !== 1) {
-        return;
-      }
-
-      e.preventDefault();
-
-      if (startTime === null) {
-        startTime = performance.now();
-        animateGhost();
-      }
-
-      totalKeystrokes++;
-      const isCorrect = isNewlineExpected ? true : (e.key === expected);
-
-      if (isCorrect) {
-        playCorrectSound();
-        correctKeystrokes++;
-        charStatus[typedIndex] = 'correct';
-        combo++;
-
-        const multiplier = 1 + Math.floor(combo / 10) * 0.5;
-        score += Math.round(10 * multiplier);
-
-        if (combo > 0 && combo % 10 === 0) {
-          const statsEl = document.getElementById('stats');
-          statsEl.classList.remove('glow');
-          void statsEl.offsetWidth;
-          statsEl.classList.add('glow');
-          showPopup(`Combo x${combo}!`);
-        }
-      } else {
-        playErrorSound();
-        charStatus[typedIndex] = 'wrong';
-        errorsByChar[expected] = (errorsByChar[expected] || 0) + 1;
-        combo = 0;
-        score = Math.max(0, score - 5);
-
-        const passageEl = document.getElementById('passage');
-        passageEl.classList.remove('shake');
-        void passageEl.offsetWidth;
-        passageEl.classList.add('shake');
-      }
-
-      document.getElementById('score').textContent = score;
-      document.getElementById('combo').textContent = combo;
-
-      charTimings[typedIndex] = Math.round(performance.now() - startTime);
-      typedIndex++;
-
-      renderPassage();
-
-      const elapsedMin = (performance.now() - startTime) / 60000;
-      const wpm = elapsedMin > 0 ? Math.round((typedIndex / 5) / elapsedMin) : 0;
-      const accuracy = Math.round((correctKeystrokes / totalKeystrokes) * 100);
-      document.getElementById('wpm').textContent = wpm;
-      document.getElementById('accuracy').textContent = accuracy;
-
-      if (typedIndex === passage.text.length) {
-        finishRun();
-      }
-    });
-
-    document.getElementById('passage').addEventListener('click', () => {
-      document.getElementById('hidden-input').focus();
-    });
-
-    async function loadHistory() {
-      const res = await fetch('/api/sessions');
-      const sessions = await res.json();
-      const body = document.getElementById('history-body');
-      body.innerHTML = sessions.map(s => `
-        <tr>
-          <td>${s.passageId}</td>
-          <td>${s.wpm.toFixed(1)}</td>
-          <td>${s.accuracy.toFixed(1)}%</td>
-        </tr>
-      `).join('');
-    }
-
-    async function loadHeatmap() {
-      const res = await fetch('/api/sessions/heatmap');
-      const data = await res.json();
-      const grid = document.getElementById('heatmap-grid');
-
-      const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
-      const max = entries.length ? entries[0][1] : 1;
-
-      grid.innerHTML = entries.map(([char, count]) => {
+    KB_ROWS.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'kb-row';
+      row.forEach(key => {
+        const count = data[key] || 0;
         const intensity = count / max;
-        const label = char === ' ' ? '(space)' : char;
-        return `<span style="display:inline-block; padding:8px 12px; margin:4px;
-          background: rgba(255,0,0,${intensity}); border:1px solid #ccc;">
-          ${label}: ${count}
-        </span>`;
-      }).join('');
-    }
-
-    function showView(view) {
-      document.getElementById('view-type').style.display = view === 'type' ? 'block' : 'none';
-      document.getElementById('view-history').style.display = view === 'history' ? 'block' : 'none';
-      document.getElementById('view-heatmap').style.display = view === 'heatmap' ? 'block' : 'none';
-    }
-
-    function ghostIndexAtTime(elapsedMs) {
-      if (!ghostTimings) return 0;
-      let idx = 0;
-      while (idx < ghostTimings.length && ghostTimings[idx] <= elapsedMs) {
-        idx++;
-      }
-      return idx;
-    }
-
-    function updateMarkers(ghostIdx) {
-      const total = passage.text.length;
-      const trackWidth = document.getElementById('race-track').offsetWidth;
-
-      const playerPct = typedIndex / total;
-      const ghostPct = ghostIdx / total;
-
-      document.getElementById('player-marker').style.left = (playerPct * trackWidth) + 'px';
-      document.getElementById('ghost-marker').style.left = (ghostPct * trackWidth) + 'px';
-    }
-
-    function animateGhost() {
-      if (!startTime || typedIndex >= passage.text.length) return;
-
-      const elapsedMs = performance.now() - startTime;
-      const ghostIdx = ghostIndexAtTime(elapsedMs);
-      updateMarkers(ghostIdx);
-
-      requestAnimationFrame(animateGhost);
-    }
-
-    document.getElementById('tab-type').addEventListener('click', () => {
-      showView('type');
+        const cell = document.createElement('div');
+        cell.className = 'kb-key';
+        cell.textContent = key.toUpperCase();
+        cell.style.background = count > 0
+          ? `rgba(255,90,90,${0.2 + intensity * 0.7})`
+          : 'rgba(0,0,0,0.25)';
+        cell.title = `${count} misses`;
+        rowEl.appendChild(cell);
+      });
+      grid.appendChild(rowEl);
     });
 
-    document.getElementById('tab-history').addEventListener('click', () => {
-      showView('history');
-      loadHistory();
-    });
+    const spaceRow = document.createElement('div');
+    spaceRow.className = 'kb-row';
+    const spaceCount = data[' '] || 0;
+    const spaceIntensity = spaceCount / max;
+    const spaceCell = document.createElement('div');
+    spaceCell.className = 'kb-key space';
+    spaceCell.textContent = 'SPACE';
+    spaceCell.style.background = spaceCount > 0
+      ? `rgba(255,90,90,${0.2 + spaceIntensity * 0.7})`
+      : 'rgba(0,0,0,0.25)';
+    spaceRow.appendChild(spaceCell);
+    grid.appendChild(spaceRow);
+  }
 
-    document.getElementById('tab-heatmap').addEventListener('click', () => {
-      showView('heatmap');
-      loadHeatmap();
-    });
+  function ghostIndexAtTime(elapsedMs) {
+    if (!ghostTimings) return 0;
+    let idx = 0;
+    while (idx < ghostTimings.length && ghostTimings[idx] <= elapsedMs) {
+      idx++;
+    }
+    return idx;
+  }
 
-    loadPassage();
-  </script>
+  function updateMarkers(ghostIdx) {
+    const total = passage.text.length;
+    const trackWidth = document.getElementById('race-track').offsetWidth - 40;
+
+    const playerPct = typedIndex / total;
+    const ghostPct = ghostIdx / total;
+
+    document.getElementById('player-marker').style.left = (20 + playerPct * trackWidth) + 'px';
+    document.getElementById('ghost-marker').style.left = (20 + ghostPct * trackWidth) + 'px';
+  }
+
+  function animateGhost() {
+    if (!startTime || typedIndex >= passage.text.length) return;
+
+    const elapsedMs = performance.now() - startTime;
+    const ghostIdx = ghostIndexAtTime(elapsedMs);
+    updateMarkers(ghostIdx);
+
+    requestAnimationFrame(animateGhost);
+  }
+
+  loadPassage();
+  loadHistory();
+  loadHeatmap();
+</script>
 
 </body>
 </html>

@@ -45,6 +45,10 @@ return sessionRepository.save(session);
     public Map<String, Integer> heatmap() {
     return heatmapService.aggregate();
     }
+    @GetMapping("/api/sessions/leaderboard")
+public List<TypingSession> leaderboard() {
+    return sessionRepository.findTop10ByOrderByWpmDesc();
+}
 
    @GetMapping("/api/sessions/ghost/{passageId}")
     public TypingSession ghost(@PathVariable Long passageId) {

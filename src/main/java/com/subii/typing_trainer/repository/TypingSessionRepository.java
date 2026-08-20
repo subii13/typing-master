@@ -9,4 +9,5 @@ import java.util.List;
 public interface TypingSessionRepository extends JpaRepository<TypingSession, Long> {
 
     List<TypingSession> findByPassageIdAndTimingArrayJsonIsNotNullOrderByWpmDesc(Long passageId);
+    List<TypingSession> findTop10ByOrderByWpmDesc();
 }
